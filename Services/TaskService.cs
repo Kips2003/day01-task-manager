@@ -1,11 +1,44 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using day01_task_manager.enums;
 using day01_task_manager.Models;
 
 namespace day01_task_manager.Services;
 
-public class TaskService : ITaskService
+
+
+public class TaskService
 {
-    public void AddToList(string title, Priority priority, DateTime dueBy, List<string> tags)
+    private List<TaskItem> _tasks = [];
+    private int _nextId = 1;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    public void Save(string path)
+    {
+        var data = new TaskData{NextId = _nextId, Tasks = _tasks};
+        string json = JsonSerializer.Serialize(data, JsonOptions);
+        File.WriteAllText(path, json);
+    }
+
+    public bool Load(string path)
+    {
+        if(!File.Exists(path)) return false;
+        
+        string json = File.ReadAllText(path);
+        TaskData? data = JsonSerializer.Deserialize<TaskData>(json, JsonOptions);
+        if(data is null) return false;
+        
+        _tasks = data.Tasks;
+        _nextId = data.NextId;
+        return true;
+    }
+    
+    public void AddToList(string title, Priority priority, DateTime? dueBy, List<string> tags)
     {
         var task = new TaskItem
         {
@@ -16,16 +49,23 @@ public class TaskService : ITaskService
             IsDone = false,
             CreatedAt = DateTime.Now
         };
+        
+        _tasks.Add(task);
     }
 
-    public List<Task> PrintList()
+    public List<TaskItem> PrintList(bool? isDone, string sortBy)
     {
-        
+        return _tasks;
+    }
+
+    public TaskItem? GetById(int id)
+    {
+        return  _tasks.FirstOrDefault(t => t.Id == id);
     }
 
     public void ChangeStatusToDone(int id)
     {
-        throw new NotImplementedException();
+        _tasks.FirstOrDefault(t => t.Id == id).IsDone = true;
     }
 
     public void UndoChanges(int id)
@@ -33,35 +73,46 @@ public class TaskService : ITaskService
         throw new NotImplementedException();
     }
 
-    public List<Task> DeleteList()
+    public bool DeleteList(int id)
     {
-        throw new NotImplementedException();
+        var taskItem = GetById(id);
+        
+        if(taskItem is null) return false;
+        _tasks.Remove(taskItem);
+        return true;
     }
 
-    public Task SearchTaskById(int id)
+    public TaskItem SearchTaskById(int id)
     {
-        throw new NotImplementedException();
+        return  _tasks.FirstOrDefault(t => t.Id == id);
     }
 
-    public Task SearchTaskByTag(string tag)
+    public TaskItem SearchTaskByTag(string tag)
     {
-        throw new NotImplementedException();
+        return _tasks.FirstOrDefault(t => t.Tags.Contains(tag));
     }
 
-    public List<Task> PrintOverDue()
+    public List<TaskItem> PrintOverDue()
     {
-        throw new NotImplementedException();
+        return _tasks.Where(t => t.DueDate > DateTime.Now).ToList();
     }
 
-    public List<Task> PrintStats()
+    public void PrintStats()
     {
-        throw new NotImplementedException();
+        int done = 0;
+        int notDone = 0;
+
+        foreach (var task in _tasks)
+        {
+            if(task.IsDone) done++;
+            else notDone++;
+        }
+        
+        Console.WriteLine($"{done} is done, {notDone} task is not done");
     }
 
     public string PrintHelp()
     {
         throw new NotImplementedException();
     }
-    
-    private 
 }
