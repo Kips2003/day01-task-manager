@@ -42,6 +42,7 @@ public class TaskService
     {
         var task = new TaskItem
         {
+            Id = _nextId++,
             Title = title,
             Priority = priority,
             DueDate = dueBy,
@@ -65,6 +66,8 @@ public class TaskService
 
     public void ChangeStatusToDone(int id)
     {
+        if(GetById(id) is null) return;
+        
         _tasks.FirstOrDefault(t => t.Id == id).IsDone = true;
     }
 
@@ -94,7 +97,7 @@ public class TaskService
 
     public List<TaskItem> PrintOverDue()
     {
-        return _tasks.Where(t => t.DueDate > DateTime.Now).ToList();
+        return _tasks.Where(t => t.DueDate < DateTime.Now).ToList();
     }
 
     public void PrintStats()
